@@ -1,8 +1,11 @@
 "use strict"
 
 /*
-   Things you might want to try:
-      object modify: move, rotate, scale, clone, delete, color, proportions
+   Things I've added:
+   - Move and rotate an object:
+        move left controller close to an object to choose/highlight it,
+        hold left trigger (button 1) to move and rotate the object at will.
+
 */
 
 /*--------------------------------------------------------------------------------
@@ -152,12 +155,15 @@ to see what the options are.
 --------------------------------------------------------------------------------*/
 
 function ControllerHandler(controller) {
-    this.isDown = () => controller.buttons[1].pressed;
-    this.onEndFrame = () => wasDown = this.isDown();
+    this.isDown = (i) => controller.buttons[i].pressed;
+    this.onEndFrame = () => {
+        for (let i = 0; i < controller.buttons.length; i++)
+            wasDown[i] = this.isDown(i);
+    }
     this.orientation = () => controller.pose.orientation;
     this.position = () => controller.pose.position;
-    this.press = () => !wasDown && this.isDown();
-    this.release = () => wasDown && !this.isDown();
+    this.press = (i) => !wasDown[i] && this.isDown(i);
+    this.release = (i) => wasDown[i] && !this.isDown(i);
     this.tip = () => {
         let P = this.position();          // THIS CODE JUST MOVES
         m.identity();                     // THE "HOT SPOT" OF THE
@@ -167,10 +173,13 @@ function ControllerHandler(controller) {
         let v = m.value();
         return [v[12], v[13], v[14]];
     }
-    let wasDown = false;
+    let wasDown = [];
+    for (let i = 0; i < controller.buttons.length; i++) {
+        wasDown[i] = false;
+    }
 }
 
-let LC, RC, isNewObj;
+let LC, RC, isNewObj, objSelected;
 
 function onStartFrame(t, state) {
 
@@ -237,9 +246,9 @@ function onStartFrame(t, state) {
     -----------------------------------------------------------------*/
 
     if (LC) {
-        if (RC.isDown()) {
+        if (RC.isDown(1)) {
             menuChoice = findInMenu(RC.position(), LC.tip());
-            if (menuChoice >= 0 && LC.press()) {
+            if (menuChoice >= 0 && LC.press(1)) {
                 isNewObj = true;
                 objs.push(new Obj(menuShape[menuChoice]));
             }
@@ -249,9 +258,41 @@ function onStartFrame(t, state) {
             obj.position = LC.tip().slice();
             obj.orientation = LC.orientation().slice();
         }
-        if (LC.release())
+        if (LC.release(1))
             isNewObj = false;
+
+        objChoice = findObj(LC.tip());
+        if (objChoice >= 0 && LC.press(1)) {
+            objSelected = true;
+        }
+        if (objSelected) {
+            let obj = objs[objChoice];
+            obj.position = LC.tip().slice();
+            obj.orientation = LC.orientation().slice();
+        }
+        if (LC.release(1))
+            objSelected = false;
     }
+}
+
+let objChoice = -1;
+
+let findObj = (p) => {
+    let baseRadius = .03;
+    let minDistance = 10000;
+    let objIdx = -1;
+    for (let i = 0; i < objs.length; i++) {
+        let dx = p[0] - objs[i].position[0];
+        let dy = p[1] - objs[i].position[1];
+        let dz = p[2] - objs[i].position[2];
+        let distance = dx * dx + dy * dy + dz * dz;
+        let radius = baseRadius * objs[i].scale;
+        if (distance < radius * radius && distance < minDistance) {
+            minDistance = distance;
+            objIdx = i;
+        }
+    }
+    return objIdx;
 }
 
 let menuX = [-.2, -.1, -.2, -.1];
@@ -286,6 +327,7 @@ let findInMenu = (mp, p) => {
 
 function Obj(shape) {
     this.shape = shape;
+    this.scale = 1;
 };
 
 let objs = [];
@@ -383,7 +425,7 @@ function onDraw(t, projMat, viewMat, state, eyeIdx) {
     -----------------------------------------------------------------*/
 
     let drawController = (C, color) => {
-        let P = C.position(), s = C.isDown() ? .0125 : .0225;
+        let P = C.position(), s = C.isDown(1) ? .0125 : .0225;
         m.save();
         m.translate(P[0], P[1], P[2]);
         m.rotateQ(C.orientation());
@@ -433,7 +475,7 @@ function onDraw(t, projMat, viewMat, state, eyeIdx) {
     if (LC) {
         drawController(LC, [1, 0, 0]);
         drawController(RC, [0, 1, 1]);
-        if (RC.isDown())
+        if (RC.isDown(1))
             showMenu(RC.position());
     }
 
@@ -453,7 +495,7 @@ function onDraw(t, projMat, viewMat, state, eyeIdx) {
         m.translate(P[0], P[1], P[2]);
         m.rotateQ(obj.orientation);
         m.scale(.03, .03, .03);
-        drawShape(obj.shape, [1, 1, 1]);
+        drawShape(obj.shape, n == objChoice ? [1, .5, .5] : [1, 1, 1]);
         m.restore();
     }
 
