@@ -2,9 +2,11 @@
 
 /*
    Things I've added:
-   - Move and rotate an object:
-        move left controller close to an object to choose/highlight it,
-        hold left trigger (button 1) to move and rotate the object at will.
+   - Move, rotate and scale an object:
+      - move left controller close to an object to choose/highlight it
+      - hold left trigger (button 1) to move and rotate the object at will
+      - hold right side button (button 2) at the same time to scale the object
+
 
 */
 
@@ -179,7 +181,7 @@ function ControllerHandler(controller) {
     }
 }
 
-let LC, RC, isNewObj, objSelected;
+let LC, RC, isNewObj, objMoveSelected, objScaleSelected;
 
 function onStartFrame(t, state) {
 
@@ -250,7 +252,9 @@ function onStartFrame(t, state) {
             menuChoice = findInMenu(RC.position(), LC.tip());
             if (menuChoice >= 0 && LC.press(1)) {
                 isNewObj = true;
-                objs.push(new Obj(menuShape[menuChoice]));
+                let obj = new Obj(menuShape[menuChoice]);
+                obj.scale = objBaseScale;
+                objs.push(obj);
             }
         }
         if (isNewObj) {
@@ -262,38 +266,77 @@ function onStartFrame(t, state) {
             isNewObj = false;
 
         objChoice = findObj(LC.tip());
-        if (objChoice >= 0 && LC.press(1)) {
-            objSelected = true;
+        // if (objChoice >= 0 && LC.press(1) && !LC.isDown(2)) {
+        //     objMoveSelected = true;
+        // }
+        // if (objMoveSelected) {
+        //     let obj = objs[objChoice];
+        //     obj.position = LC.tip().slice();
+        //     obj.orientation = LC.orientation().slice();
+        // }
+        // if (LC.release(1))
+        //     objMoveSelected = false;
+        //
+        // if (objChoice >= 0 && LC.press(2) && !LC.isDown(1)) {
+        //     objScaleSelected = true;
+        // }
+        // if (objScaleSelected) {
+        //     let obj = objs[objChoice];
+        //     if (RC.isDown(2))
+        //         obj.scale = scaleObj(LC.tip(), RC.tip());
+        // }
+        // if (LC.release(2)) {
+        //     objScaleSelected = false;
+        // }
+
+        if (objChoice >= 0 && LC.press(1) && !LC.isDown(2)) {
+            objMoveSelected = true;
+            objScaleSelected = true;
         }
-        if (objSelected) {
+        if (objMoveSelected) {
             let obj = objs[objChoice];
             obj.position = LC.tip().slice();
             obj.orientation = LC.orientation().slice();
         }
-        if (LC.release(1))
-            objSelected = false;
+        if (objScaleSelected) {
+            let obj = objs[objChoice];
+            if (RC.isDown(2))
+                obj.scale = scaleObj(LC.tip(), RC.tip());
+        }
+        if (LC.release(1)) {
+            objMoveSelected = false;
+            objScaleSelected = false;
+        }
+
     }
 }
 
 let objChoice = -1;
+let objBaseScale = [.03, .03, .03];
 
 let findObj = (p) => {
-    let baseRadius = .03;
-    let minDistance = 10000;
+    let minDistanceSquare = 10000;
     let objIdx = -1;
     for (let i = 0; i < objs.length; i++) {
         let dx = p[0] - objs[i].position[0];
         let dy = p[1] - objs[i].position[1];
         let dz = p[2] - objs[i].position[2];
-        let distance = dx * dx + dy * dy + dz * dz;
-        let radius = baseRadius * objs[i].scale;
-        if (distance < radius * radius && distance < minDistance) {
-            minDistance = distance;
+        let distanceSquare = dx * dx + dy * dy + dz * dz;
+        let radius = (objs[i].scale[0] + objs[i].scale[1] + objs[i].scale[2]) / 3;
+        if (distanceSquare < radius * radius && distanceSquare < minDistanceSquare) {
+            minDistanceSquare = distanceSquare;
             objIdx = i;
         }
     }
     return objIdx;
-}
+};
+
+let scaleObj = (lp, rp) => {
+    let sx = Math.abs(lp[0] - rp[0]) * 2 / 3;
+    let sy = Math.abs(lp[1] - rp[1]) * 2 / 3;
+    let sz = Math.abs(lp[2] - rp[2]) * 2 / 3;
+    return [sx, sy, sz];
+};
 
 let menuX = [-.2, -.1, -.2, -.1];
 let menuY = [.1, .1, 0, 0];
@@ -323,12 +366,11 @@ let findInMenu = (mp, p) => {
             return n;
     }
     return -1;
-}
+};
 
 function Obj(shape) {
     this.shape = shape;
-    this.scale = 1;
-};
+}
 
 let objs = [];
 
@@ -490,11 +532,11 @@ function onDraw(t, projMat, viewMat, state, eyeIdx) {
     -----------------------------------------------------------------*/
 
     for (let n = 0; n < objs.length; n++) {
-        let obj = objs[n], P = obj.position;
+        let obj = objs[n], P = obj.position, s = obj.scale;
         m.save();
         m.translate(P[0], P[1], P[2]);
         m.rotateQ(obj.orientation);
-        m.scale(.03, .03, .03);
+        m.scale(s[0], s[1], s[2]);
         drawShape(obj.shape, n == objChoice ? [1, .5, .5] : [1, 1, 1]);
         m.restore();
     }
