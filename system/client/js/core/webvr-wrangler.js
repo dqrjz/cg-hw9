@@ -702,7 +702,7 @@ window.VRCanvasWrangler = (function() {
                 return;
             }
             if (this._VRIsActive) {
-                this.canvas.width   = this._oldCanvasWidth;
+                this._canvas.width   = this._oldCanvasWidth;
                 this._canvas.height = this._oldCanvasHeight;
             }
             this._VRIsActive = false;
