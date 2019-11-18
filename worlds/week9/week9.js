@@ -1,6 +1,7 @@
 "use strict"
 
-/*
+/*--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
    Things I've added:
    - Move, rotate and scale an object:
       - move left controller close to an object to choose/highlight it
@@ -15,8 +16,8 @@
    - Delete an object:
       - move right controller to an object to highlight it in red
       - simply press right button 'B' to delete the object
-
-*/
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------------
 
@@ -257,6 +258,7 @@ function onStartFrame(t, state) {
     -----------------------------------------------------------------*/
 
     if (LC) {
+        // create an object
         if (RC.isDown(1)) {
             menuChoice = findInMenu(RC.position(), LC.tip());
             if (menuChoice >= 0 && LC.press(1)) {
@@ -274,6 +276,7 @@ function onStartFrame(t, state) {
         if (LC.release(1))
             isNewObj = false;
 
+        // move/rotate/scale an object
         objChoiceLeft = findObj(LC.tip());
         if (objChoiceLeft >= 0 && LC.press(1) && !LC.isDown(2) && !LC.isDown(3) && !LC.isDown(4)) {
             objMoveSelected = true;
@@ -294,6 +297,7 @@ function onStartFrame(t, state) {
             objScaleSelected = false;
         }
 
+        // clone an object
         if (objChoiceLeft >= 0 && LC.press(3) && !LC.isDown(1) && !LC.isDown(2) && !LC.isDown(4)) {
             objCloneSelected = true;
             let obj = objs[objChoiceLeft];
@@ -309,6 +313,7 @@ function onStartFrame(t, state) {
         if (LC.release(3))
             objCloneSelected = false;
 
+        // delete an object
         objChoiceRight = findObj(RC.tip());
         if (objChoiceRight >= 0 && RC.press(4) && !LC.isDown(1) && !LC.isDown(2) && !LC.isDown(3) &&
             !RC.isDown(1)) {
