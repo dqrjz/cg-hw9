@@ -12,6 +12,9 @@
       - move left controller to an object, hold left button 'X' to create an clone
       - keep holding left button 'X' and move left controller to move/rotate the
         clone, release left button 'X' to place it
+   - Delete an object:
+      - move right controller to an object to highlight it in red
+      - simply press right button 'B' to delete the object
 
 */
 
@@ -186,7 +189,8 @@ function ControllerHandler(controller) {
     }
 }
 
-let LC, RC, isNewObj, objMoveSelected, objScaleSelected, objCloneSelected;
+let LC, RC, isNewObj,
+    objMoveSelected, objScaleSelected, objCloneSelected;
 
 function onStartFrame(t, state) {
 
@@ -270,18 +274,18 @@ function onStartFrame(t, state) {
         if (LC.release(1))
             isNewObj = false;
 
-        objChoice = findObj(LC.tip());
-        if (objChoice >= 0 && LC.press(1) && !LC.isDown(2) && !LC.isDown(3)) {
+        objChoiceLeft = findObj(LC.tip());
+        if (objChoiceLeft >= 0 && LC.press(1) && !LC.isDown(2) && !LC.isDown(3) && !LC.isDown(4)) {
             objMoveSelected = true;
             objScaleSelected = true;
         }
         if (objMoveSelected) {
-            let obj = objs[objChoice];
+            let obj = objs[objChoiceLeft];
             obj.position = LC.tip().slice();
             obj.orientation = LC.orientation().slice();
         }
         if (objScaleSelected) {
-            let obj = objs[objChoice];
+            let obj = objs[objChoiceLeft];
             if (RC.isDown(2))
                 obj.scale = scaleObj(LC.tip(), RC.tip());
         }
@@ -290,9 +294,9 @@ function onStartFrame(t, state) {
             objScaleSelected = false;
         }
 
-        if (objChoice >= 0 && LC.press(3) && !LC.isDown(1) && !LC.isDown(2)){
+        if (objChoiceLeft >= 0 && LC.press(3) && !LC.isDown(1) && !LC.isDown(2) && !LC.isDown(4)) {
             objCloneSelected = true;
-            let obj = objs[objChoice];
+            let obj = objs[objChoiceLeft];
             let objClone = new Obj(obj.shape);
             objClone.scale = obj.scale;
             objs.push(objClone);
@@ -305,10 +309,15 @@ function onStartFrame(t, state) {
         if (LC.release(3))
             objCloneSelected = false;
 
+        objChoiceRight = findObj(RC.tip());
+        if (objChoiceRight >= 0 && RC.press(4) && !LC.isDown(1) && !LC.isDown(2) && !LC.isDown(3) &&
+            !RC.isDown(1)) {
+            objs.splice(objChoiceRight, 1);
+        }
     }
 }
 
-let objChoice = -1;
+let objChoiceLeft = -1, objChoiceRight = -1;
 let objBaseScale = [.03, .03, .03];
 
 let findObj = (p) => {
@@ -534,7 +543,9 @@ function onDraw(t, projMat, viewMat, state, eyeIdx) {
         m.translate(P[0], P[1], P[2]);
         m.rotateQ(obj.orientation);
         m.scale(s[0], s[1], s[2]);
-        drawShape(obj.shape, n == objChoice ? [1, .5, .5] : [1, 1, 1]);
+        let color = n == objChoiceLeft ? [1, .5, .5] :
+            (n == objChoiceRight ? [1, 0, 0] : [1, 1, 1]);
+        drawShape(obj.shape, color);
         m.restore();
     }
 
