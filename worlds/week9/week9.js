@@ -4,9 +4,14 @@
    Things I've added:
    - Move, rotate and scale an object:
       - move left controller close to an object to choose/highlight it
-      - hold left trigger (button 1) to move and rotate the object at will
-      - hold right side button (button 2) at the same time to scale the object
-
+      - hold left trigger (button 1) and move left controller to
+        move and rotate the object at will
+      - hold right side button (button 2) at the same time and move right
+        controller to scale the object
+   - Clone an object:
+      - move left controller to an object, hold left button 'X' to create an clone
+      - keep holding left button 'X' and move left controller to move/rotate the
+        clone, release left button 'X' to place it
 
 */
 
@@ -181,7 +186,7 @@ function ControllerHandler(controller) {
     }
 }
 
-let LC, RC, isNewObj, objMoveSelected, objScaleSelected;
+let LC, RC, isNewObj, objMoveSelected, objScaleSelected, objCloneSelected;
 
 function onStartFrame(t, state) {
 
@@ -266,30 +271,7 @@ function onStartFrame(t, state) {
             isNewObj = false;
 
         objChoice = findObj(LC.tip());
-        // if (objChoice >= 0 && LC.press(1) && !LC.isDown(2)) {
-        //     objMoveSelected = true;
-        // }
-        // if (objMoveSelected) {
-        //     let obj = objs[objChoice];
-        //     obj.position = LC.tip().slice();
-        //     obj.orientation = LC.orientation().slice();
-        // }
-        // if (LC.release(1))
-        //     objMoveSelected = false;
-        //
-        // if (objChoice >= 0 && LC.press(2) && !LC.isDown(1)) {
-        //     objScaleSelected = true;
-        // }
-        // if (objScaleSelected) {
-        //     let obj = objs[objChoice];
-        //     if (RC.isDown(2))
-        //         obj.scale = scaleObj(LC.tip(), RC.tip());
-        // }
-        // if (LC.release(2)) {
-        //     objScaleSelected = false;
-        // }
-
-        if (objChoice >= 0 && LC.press(1) && !LC.isDown(2)) {
+        if (objChoice >= 0 && LC.press(1) && !LC.isDown(2) && !LC.isDown(3)) {
             objMoveSelected = true;
             objScaleSelected = true;
         }
@@ -307,6 +289,21 @@ function onStartFrame(t, state) {
             objMoveSelected = false;
             objScaleSelected = false;
         }
+
+        if (objChoice >= 0 && LC.press(3) && !LC.isDown(1) && !LC.isDown(2)){
+            objCloneSelected = true;
+            let obj = objs[objChoice];
+            let objClone = new Obj(obj.shape);
+            objClone.scale = obj.scale;
+            objs.push(objClone);
+        }
+        if (objCloneSelected) {
+            let obj = objs[objs.length - 1];
+            obj.position = LC.tip().slice();
+            obj.orientation = LC.orientation().slice();
+        }
+        if (LC.release(3))
+            objCloneSelected = false;
 
     }
 }
